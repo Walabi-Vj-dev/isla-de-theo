@@ -106,6 +106,24 @@
   .fox{ font-size:5rem; filter:drop-shadow(0 8px 0 rgba(0,0,0,.12)); }
   #screen-splash h1{ font-size:2rem; margin:0; }
   #screen-splash p{ color:var(--ink-soft); font-weight:700; margin:0; max-width:32ch; }
+
+  /* ---------- name gate ---------- */
+  #screen-name{ display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:88vh; text-align:center; gap:16px; padding:0 6px; }
+  .name-form{ display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:320px; }
+  .name-input{
+    width:100%; font-family:'Baloo 2'; font-weight:800; font-size:1.6rem; text-align:center;
+    letter-spacing:.06em; text-transform:capitalize; color:var(--ink); background:var(--card);
+    border:3px solid transparent; border-radius:18px; padding:16px 12px; box-shadow:var(--shadow);
+    outline:none; box-sizing:border-box;
+  }
+  .name-input:focus{ border-color:var(--accent); }
+  .name-input.shake{ animation: shake .35s; }
+  .name-listenbtn{
+    font-family:'Nunito'; font-weight:800; font-size:.95rem; color:var(--ink-soft); background:none;
+    border:none; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px;
+  }
+  .name-hint .blanks{ margin:8px 0 0; }
+
   .bigbtn{
     font-family:'Baloo 2'; font-weight:800; font-size:1.2rem; color:var(--on-accent);
     background:var(--sun); border:none; border-radius:20px; padding:18px 30px;
@@ -292,10 +310,26 @@
 
 <main>
 
-  <section id="screen-splash">
+  <section id="screen-name">
+    <div class="fox">🦊</div>
+    <h1>¡Hola!</h1>
+    <div class="bubble">Antes de entrar a la isla, escribí tu nombre para que Zorri sepa quién sos ✍️</div>
+    <form id="name-form" class="name-form" autocomplete="off">
+      <input type="text" id="name-input" class="name-input" placeholder="Tu nombre" maxlength="20" autocapitalize="words" autocomplete="off" spellcheck="false">
+      <button type="submit" class="bigbtn">¡Listo! ✅</button>
+    </form>
+    <button type="button" class="name-listenbtn" id="name-listen">🔊 ¿Cómo se escribe?</button>
+    <div class="feedback" id="name-feedback"></div>
+    <div class="name-hint" id="name-hint" hidden>
+      <p class="hint">Pista:</p>
+      <div class="blanks" id="name-hint-blanks"></div>
+    </div>
+  </section>
+
+  <section id="screen-splash" hidden>
     <div class="fox">🦊</div>
     <h1>Isla de Theo</h1>
-    <div class="bubble">¡Hola, Theo! Soy Zorri. Vamos a jugar y aprender inglés juntos 🎉</div>
+    <div class="bubble" id="splash-bubble">¡Hola, Theo! Soy Zorri. Vamos a jugar y aprender inglés juntos 🎉</div>
     <button class="bigbtn" id="btn-start">¡Empezar la aventura! 🚀</button>
     <p>Para tu abuelo: activá el sonido y el micrófono para que Zorri escuche cómo pronuncia Theo.</p>
   </section>
@@ -1016,6 +1050,60 @@
     speak("What is "+wordFor(sumsState.a)+" plus "+wordFor(sumsState.b)+"?", "en-US");
   });
   document.getElementById("sums-next").addEventListener("click", newSum);
+
+  /* ================= NAME GATE ================= */
+  var TARGET_NAME = "theo";
+  function normalizeName(s){
+    return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toLowerCase();
+  }
+  function capName(s){
+    s = (s||"").trim();
+    if(!s) return "Theo";
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  }
+  var nameAttempts = 0;
+  var nameInput = document.getElementById("name-input");
+  var nameFeedback = document.getElementById("name-feedback");
+  var nameHint = document.getElementById("name-hint");
+  (function buildNameHint(){
+    var host = document.getElementById("name-hint-blanks");
+    "THEO".split("").forEach(function(ltr){
+      var d = document.createElement("div");
+      d.className = "blank"; d.textContent = ltr;
+      host.appendChild(d);
+    });
+  })();
+  document.getElementById("name-listen").addEventListener("click", function(){
+    speak("Theo", "es-ES", 0.8);
+    "THEO".split("").forEach(function(ltr, i){
+      setTimeout(function(){ speak(ltr, "es-ES", 0.55); }, 900 + i*650);
+    });
+  });
+  document.getElementById("name-form").addEventListener("submit", function(e){
+    e.preventDefault();
+    var val = nameInput.value;
+    if(normalizeName(val) === TARGET_NAME){
+      var displayName = capName(val);
+      try{ localStorage.setItem("theoPlayerName", displayName); }catch(err){}
+      beep("ok"); burstStars();
+      nameFeedback.className = "feedback ok";
+      nameFeedback.textContent = "¡Muy bien, "+displayName+"! 🎉";
+      var bubble = document.getElementById("splash-bubble");
+      if(bubble) bubble.textContent = "¡Hola, "+displayName+"! Soy Zorri. Vamos a jugar y aprender inglés juntos 🎉";
+      setTimeout(function(){
+        document.getElementById("screen-name").hidden = true;
+        document.getElementById("screen-splash").hidden = false;
+      }, 900);
+    } else {
+      nameAttempts++;
+      beep("bad");
+      nameInput.classList.add("shake");
+      setTimeout(function(){ nameInput.classList.remove("shake"); }, 350);
+      nameFeedback.className = "feedback bad";
+      nameFeedback.textContent = val.trim() ? "¡Casi! Probá de nuevo 💪" : "Escribí tu nombre para continuar";
+      if(nameAttempts >= 2) nameHint.hidden = false;
+    }
+  });
 
   /* ================= START ================= */
   document.getElementById("btn-start").addEventListener("click", function(){
