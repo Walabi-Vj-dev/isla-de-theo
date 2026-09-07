@@ -1,0 +1,13 @@
+{
+    "name": "Isla de Theo",
+    "short_name": "Isla de Theo",
+    "start_url": ".",
+    "scope": ".",
+    "display": "standalone",
+    "background_color": "#5EC1FF",
+    "theme_color": "#5EC1FF",
+    "orientation": "portrait",
+    "icons": [
+          { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    ]
+}
